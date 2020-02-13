@@ -66,7 +66,7 @@ parser.add_argument('--model', type=str, default='bert_12_768_12',
 parser.add_argument('--dataset_name', type=str, default='book_corpus_wiki_en_uncased',
                     choices=['book_corpus_wiki_en_uncased', 'book_corpus_wiki_en_cased',
                              'wiki_multilingual_uncased', 'wiki_multilingual_cased',
-                             'wiki_cn_cased'],
+                             'wiki_cn_cased', 'kobert_news_wiki_ko_cased'],
                     help='The pre-defined dataset from which the vocabulary is created.')
 # training
 parser.add_argument('--data', type=str, default=None,
@@ -423,10 +423,14 @@ if __name__ == '__main__':
 
     if args.raw:
         if args.sentencepiece:
-            tokenizer = nlp.data.BERTSPTokenizer(args.sentencepiece, vocab,
+            tokenizer = nlp.data.BERTSPTokenizer(args.sentencepiece,
+                                                 vocab,
                                                  lower=not args.cased)
         else:
-            tokenizer = nlp.data.BERTTokenizer(vocab=vocab, lower=not args.cased)
+            tokenizer = nlp.data.get_tokenizer(args.model,
+                                               dataset_name,
+                                               vocab=vocab,
+                                               lower=not args.cased)
 
         cache_dir = os.path.join(args.ckpt_dir, 'data_eval_cache')
         cache_file = os.path.join(cache_dir, 'part-000.npz')

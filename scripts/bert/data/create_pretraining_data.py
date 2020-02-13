@@ -531,6 +531,11 @@ def main():
         vocab = nlp.vocab.BERTVocab.from_sentencepiece(args.sentencepiece)
         tokenizer = nlp.data.BERTSPTokenizer(args.sentencepiece, vocab, num_best=args.sp_nbest,
                                              alpha=args.sp_alpha, lower=not args.cased)
+    elif args.dataset_name == 'kobert_news_wiki_ko_cased':
+        _, vocab = nlp.model.get_model('bert_12_768_12', dataset_name=args.dataset_name, pretrained=False)
+        tokenizer = nlp.data.get_tokenizer('bert_12_768_12', args.dataset_name, vocab=vocab, lower=not args.cased)
+        tokenizer = nlp.data.BERTSPTokenizer(tokenizer._path, vocab, num_best=args.sp_nbest,
+                                        alpha=args.sp_alpha, lower=not args.cased)
     else:
         logging.info('loading vocab file from pre-defined dataset: %s', args.dataset_name)
         vocab = nlp.data.utils._load_pretrained_vocab(args.dataset_name, root=output_dir,
@@ -604,7 +609,8 @@ if __name__ == '__main__':
         type=str,
         default=None,
         choices=['book_corpus_wiki_en_uncased', 'book_corpus_wiki_en_cased',
-                 'wiki_multilingual_uncased', 'wiki_multilingual_cased', 'wiki_cn_cased'],
+                 'wiki_multilingual_uncased', 'wiki_multilingual_cased', 'wiki_cn_cased',
+                 'kobert_news_wiki_ko_cased'],
         help='The dataset name for the vocab file BERT model was trained on. For example, '
              '"book_corpus_wiki_en_uncased"')
 
