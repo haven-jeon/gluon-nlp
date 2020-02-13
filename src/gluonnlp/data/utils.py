@@ -17,17 +17,19 @@
 
 """Utility classes and functions. They help organize and keep statistics of datasets."""
 import collections
-import errno
 import os
 import tarfile
 import zipfile
-import time
+import random
+import sys
+import shutil
 
 import numpy as np
 from mxnet.gluon.data import SimpleDataset
 from mxnet.gluon.utils import _get_repo_url, check_sha1, download
 
 from .. import _constants as C
+from .. import utils
 
 __all__ = [
     'Counter', 'count_tokens', 'concat_sequence', 'slice_sequence', 'train_valid_split',
@@ -233,6 +235,8 @@ _vocab_sha1 = {'wikitext-2':
                ['2b804f8f90f9f93c07994b703ce508725061cf43', '.vocab', {}],
                'wiki_multilingual_cased':
                ['0247cb442074237c38c62021f36b7a4dbd2e55f7', '.vocab', {}],
+               'distilbert_book_corpus_wiki_en_uncased':
+               ['80ef760a6bdafec68c99b691c94ebbb918c90d02', '.vocab', {}],
                'wiki_cn_cased':
                ['ddebd8f3867bca5a61023f73326fb125cf12b4f5', '.vocab', {}],
                'wiki_multilingual_uncased':
@@ -264,11 +268,10 @@ _vocab_sha1 = {'wikitext-2':
                'kobert_news_wiki_ko_cased':
                ['f86b1a8355819ba5ab55e7ea4a4ec30fdb5b084f', '.spiece', {'padding_token': '[PAD]'}]}
 
-
 _url_format = '{repo_url}gluon/dataset/vocab/{file_name}.zip'
 
 
-def train_valid_split(dataset, valid_ratio=0.05):
+def train_valid_split(dataset, valid_ratio=0.05, stratify=None):
     """Split the dataset into training and validation sets.
 
     Parameters
@@ -278,6 +281,9 @@ def train_valid_split(dataset, valid_ratio=0.05):
     valid_ratio : float, default 0.05
         Proportion of training samples to use for validation set
         range: [0, 1]
+    stratify : list, default None
+        If not None, data is split in a stratified fashion,
+        using the contents of stratify as class labels.
 
     Returns
     -------
@@ -287,14 +293,45 @@ def train_valid_split(dataset, valid_ratio=0.05):
     if not 0.0 <= valid_ratio <= 1.0:
         raise ValueError('valid_ratio should be in [0, 1]')
 
-    num_train = len(dataset)
-    num_valid = np.ceil(num_train * valid_ratio).astype('int')
-    indices = np.arange(num_train)
+    if not stratify:
+        num_train = len(dataset)
+        num_valid = np.ceil(num_train * valid_ratio).astype('int')
+        indices = np.arange(num_train)
 
-    np.random.shuffle(indices)
-    valid = SimpleDataset([dataset[indices[i]] for i in range(num_valid)])
-    train = SimpleDataset([dataset[indices[i + num_valid]] for i in range(num_train - num_valid)])
-    return train, valid
+        np.random.shuffle(indices)
+        valid = SimpleDataset([dataset[indices[i]] for i in range(num_valid)])
+        train = SimpleDataset(
+            [dataset[indices[i + num_valid]] for i in range(num_train - num_valid)])
+
+        return train, valid
+    else:
+        if not isinstance(stratify, list):
+            raise TypeError('stratify should be a list')
+        if not len(stratify) == len(dataset):
+            raise ValueError('stratify should be the same length as num_train')
+
+        classes, digitized = np.unique(stratify, return_inverse=True)
+        n_classes = len(classes)
+        num_class = np.bincount(digitized)
+        num_valid = np.ceil(valid_ratio * num_class).astype('int')
+
+        valid = []
+        train = []
+
+        for idx in range(n_classes):
+            indices = np.nonzero(stratify == classes[idx])[0]
+            np.random.shuffle(indices)
+            valid += [dataset[indices[i]] for i in range(num_valid[idx])]
+            train += [dataset[indices[i + num_valid[idx]]]
+                      for i in range(num_class[idx] - num_valid[idx])]
+
+        np.random.shuffle(valid)
+        np.random.shuffle(train)
+
+        train = SimpleDataset(train)
+        valid = SimpleDataset(valid)
+
+        return train, valid
 
 
 def short_hash(name):
@@ -314,33 +351,24 @@ def _get_vocab_tokenizer_info(name, root):
     return file_name, file_ext, sha1_hash, special_tokens
 
 
-def _download_vocab_tokenizer(root, file_name, file_path):
-    if not os.path.exists(root):
-        try:
-            os.makedirs(root)
-        except OSError as e:
-            if e.errno == errno.EEXIST and os.path.isdir(root):
-                pass
-            else:
-                raise e
+def _download_vocab_tokenizer(root, file_name, file_ext, file_path):
+    utils.mkdir(root)
 
-    prefix = str(time.time())
-    zip_file_path = os.path.join(root, prefix + file_name + '.zip')
+    temp_num = str(random.Random().randint(1, sys.maxsize))
+    temp_root = os.path.join(root, temp_num)
+    temp_file_path = os.path.join(temp_root, file_name + file_ext)
+    temp_zip_file_path = os.path.join(temp_root, temp_num + '_' + file_name + '.zip')
+
     repo_url = _get_repo_url()
     download(_url_format.format(repo_url=repo_url, file_name=file_name),
-             path=zip_file_path,
-             overwrite=True)
-    with zipfile.ZipFile(zip_file_path) as zf:
-        if not os.path.exists(file_path):
-            zf.extractall(root)
-    try:
-        os.remove(zip_file_path)
-    except OSError as e:
-        # file has already been removed.
-        if e.errno == 2:
-            pass
-        else:
-            raise e
+             path=temp_zip_file_path, overwrite=True)
+    with zipfile.ZipFile(temp_zip_file_path) as zf:
+        assert file_name + file_ext in zf.namelist(), '{} not part of {}. Only have: {}'.format(
+            file_name + file_ext, file_name + '.zip', zf.namelist())
+        utils.mkdir(temp_root)
+        zf.extractall(temp_root)
+        os.replace(temp_file_path, file_path)
+        shutil.rmtree(temp_root)
 
 def _load_pretrained_vocab(name, root, cls=None):
     """Load the accompanying vocabulary object for pre-trained model.
@@ -367,7 +395,7 @@ def _load_pretrained_vocab(name, root, cls=None):
             print('Detected mismatch in the content of model vocab file. Downloading again.')
     else:
         print('Vocab file is not found. Downloading.')
-    _download_vocab_tokenizer(root, file_name, file_path)
+    _download_vocab_tokenizer(root, file_name, file_ext, file_path)
     if check_sha1(file_path, sha1_hash):
         return _load_vocab_file(file_path, cls, **special_tokens)
     else:
@@ -386,7 +414,7 @@ def _load_pretrained_sentencepiece_tokenizer(name, root, **kwargs):
             print('Detected mismatch in the content of model tokenizer file. Downloading again.')
     else:
         print('tokenizer file is not found. Downloading.')
-    _download_vocab_tokenizer(root, file_name, file_path)
+    _download_vocab_tokenizer(root, file_name, file_ext, file_path)
     if check_sha1(file_path, sha1_hash):
         assert file_path.endswith('.spiece')
         return SentencepieceTokenizer(file_path, **kwargs)

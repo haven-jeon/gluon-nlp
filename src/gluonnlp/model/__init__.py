@@ -90,11 +90,11 @@ from .translation import *
 from .utils import *
 from ..base import get_home_dir
 
-__all__ = language_model.__all__ + sequence_sampler.__all__ + attention_cell.__all__ + \
-          utils.__all__ + parameter.__all__ + block.__all__ + highway.__all__ + \
-          convolutional_encoder.__all__ + sampled_block.__all__ + ['get_model', 'get_tokenizer'] + \
-          ['train'] + bilm_encoder.__all__ + lstmpcellwithclip.__all__ + \
-          elmo.__all__ + seq2seq_encoder_decoder.__all__ + transformer.__all__ + bert.__all__
+__all__ = (language_model.__all__ + sequence_sampler.__all__ + attention_cell.__all__ +
+           utils.__all__ + parameter.__all__ + block.__all__ + highway.__all__ +
+           convolutional_encoder.__all__ + sampled_block.__all__ + bilm_encoder.__all__ +
+           lstmpcellwithclip.__all__ + elmo.__all__ + seq2seq_encoder_decoder.__all__ +
+           transformer.__all__ + bert.__all__ + ['train', 'get_model'])
 
 
 def get_model(name, **kwargs):
@@ -143,6 +143,7 @@ def get_model(name, **kwargs):
               'transformer_en_de_512': transformer_en_de_512,
               'bert_12_768_12'       : bert_12_768_12,
               'bert_24_1024_16'      : bert_24_1024_16,
+              'distilbert_6_768_12'  : distilbert_6_768_12,
               'roberta_12_768_12'    : roberta_12_768_12,
               'roberta_24_1024_16'   : roberta_24_1024_16,
               'ernie_12_768_12'      : ernie_12_768_12}
