@@ -39,8 +39,7 @@ from ..base import get_home_dir
 class _CoNLLSequenceTagging(SimpleDataset):
     def __init__(self, segment, root, has_comment=False):
         root = os.path.expanduser(root)
-        if not os.path.isdir(root):
-            os.makedirs(root)
+        os.makedirs(root, exist_ok=True)
         self._segment = segment
         self._root = root
         self._has_comment = has_comment
@@ -141,7 +140,7 @@ class CoNLL2000(_CoNLLSequenceTagging):
                                     'dc57527f1f60eeafad03da51235185141152f849')}
         super(CoNLL2000, self).__init__(segment, root)
 
-    base_url = 'http://www.clips.uantwerpen.be/conll2000/chunking/'
+    base_url = 'https://www.clips.uantwerpen.be/conll2000/chunking/'
     codec = 'utf-8'
 
 

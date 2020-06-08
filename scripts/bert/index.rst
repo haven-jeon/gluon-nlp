@@ -44,6 +44,8 @@ The following pre-trained BERT models are available from the **gluonnlp.model.ge
 +-----------------------------------------+----------------+-----------------+
 | clinicalbert_uncased                    | ✓              | x               |
 +-----------------------------------------+----------------+-----------------+
+| kobert_news_wiki_ko_cased               | ✓              | x               |
++-----------------------------------------+----------------+-----------------+
 
 where **bert_12_768_12** refers to the BERT BASE model, and **bert_24_1024_16** refers to the BERT LARGE model.
 
@@ -97,7 +99,7 @@ Additionally, GluonNLP supports the "`RoBERTa <https://arxiv.org/abs/1907.11692>
     text = [vocab.bos_token] + tokenizer('Hello world!') + [vocab.eos_token];
     seq_encoding = model(mx.nd.array([vocab[text]]))
 
-Finally, GluonNLP also supports the "`DistilBERT <https://arxiv.org/abs/1910.01108>`_" model:
+GluonNLP also supports the "`DistilBERT <https://arxiv.org/abs/1910.01108>`_" model:
 
 +-----------------------------------------+----------------------+
 |                                         | distilbert_6_768_12  |
@@ -115,9 +117,18 @@ Finally, GluonNLP also supports the "`DistilBERT <https://arxiv.org/abs/1910.011
     words, valid_len = mx.nd.array([sample[0]]), mx.nd.array([sample[1]])
     seq_encoding, cls_encoding = model(words, valid_len);
 
+Finally, GluonNLP also suports Korean BERT pre-trained model, "`KoBERT <https://github.com/SKTBrain/KoBERT>`_", using Korean wiki dataset (`kobert_news_wiki_ko_cased`).
+
+.. code-block:: python
+
+    import gluonnlp as nlp; import mxnet as mx;
+    model, vocab = nlp.model.get_model('bert_12_768_12', dataset_name='kobert_news_wiki_ko_cased',use_decoder=False, use_classifier=False)
+    tok = nlp.data.get_tokenizer('bert_12_768_12', 'kobert_news_wiki_ko_cased')
+    tok('안녕하세요.')
+
 .. hint::
 
-   The pre-training, fine-tunining and export scripts are available `here. </_downloads/bert.zip>`__
+   The pre-training, fine-tuning and export scripts are available `here. </_downloads/bert.zip>`__
 
 
 Sentence Classification
@@ -223,22 +234,22 @@ version of `mxnet-mkl <https://apache-mxnet.s3-us-west-2.amazonaws.com/dist/inde
 Sentence Classification
 +++++++++++++++++++++++
 
-+-----------+-------------------+---------------+---------------+---------+---------+-----+---------+
-|  Dataset  | Model             | FP32 Accuracy | INT8 Accuracy | FP32 F1 | INT8 F1 | Log | Command |
-+===========+===================+===============+===============+=========+=========+=====+=========+
-| MRPC      | bert_12_768_12    | 87.01         | 87.01         | 90.97   | 90.88   |     |         |
-+-----------+-------------------+---------------+---------------+---------+---------+-----+---------+
-| SST-2     | bert_12_768_12    | 93.23         | 93.00         |         |         |     |         |
-+-----------+-------------------+---------------+---------------+---------+---------+-----+---------+
++-----------+-------------------+---------------+---------------+---------+---------+------------------------------------------------------------------------------------------------------------------------+
+|  Dataset  | Model             | FP32 Accuracy | INT8 Accuracy | FP32 F1 | INT8 F1 | Command                                                                                                                |
++===========+===================+===============+===============+=========+=========+========================================================================================================================+
+| MRPC      | bert_12_768_12    | 87.01         | 87.01         | 90.97   | 90.88   |`command <https://github.com/dmlc/web-data/blob/master/gluonnlp/logs/bert/calibration_MRPC_base_mx1.6.0b20200125.sh>`__ |
++-----------+-------------------+---------------+---------------+---------+---------+------------------------------------------------------------------------------------------------------------------------+
+| SST-2     | bert_12_768_12    | 93.23         | 93.00         |         |         |`command <https://github.com/dmlc/web-data/blob/master/gluonnlp/logs/bert/calibration_SST_base_mx1.6.0b20200125.sh>`__  |
++-----------+-------------------+---------------+---------------+---------+---------+------------------------------------------------------------------------------------------------------------------------+
 
 Question Answering
 ++++++++++++++++++
 
-+-----------+-------------------+---------+---------+---------+---------+-----+---------+
-|  Dataset  | Model             | FP32 EM | INT8 EM | FP32 F1 | INT8 F1 | Log | Command |
-+===========+===================+=========+=========+=========+=========+=====+=========+
-| SQuAD 1.1 | bert_12_768_12    | 81.18   | 80.32   | 88.58   | 88.10   |     |         |
-+-----------+-------------------+---------+---------+---------+---------+-----+---------+
++-----------+-------------------+---------+---------+---------+---------+----------------------------------------------------------------------------------------------------------------------------+
+|  Dataset  | Model             | FP32 EM | INT8 EM | FP32 F1 | INT8 F1 | Command                                                                                                                    |
++===========+===================+=========+=========+=========+=========+============================================================================================================================+
+| SQuAD 1.1 | bert_12_768_12    | 81.18   | 80.32   | 88.58   | 88.10   |`command <https://github.com/dmlc/web-data/blob/master/gluonnlp/logs/bert/calibration_squad1.1_base_mx1.6.0b20200125.sh>`__ |
++-----------+-------------------+---------+---------+---------+---------+----------------------------------------------------------------------------------------------------------------------------+
 
 For all model settings above, we use a subset of evaluation dataset for calibration.
 
