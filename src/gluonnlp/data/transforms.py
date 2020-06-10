@@ -519,8 +519,8 @@ class SentencepieceTokenizer(_SentencepieceProcessor):
         If num_best < 0, then assume that num_best is infinite and
         samples from the all hypothesis (lattice) using forward-filtering-and-backward-sampling
         algorithm.
-    alpha : float, default 1.0
-        A scalar for a smoothing parameter. Inverse temperature for probability rescaling.
+    alpha : float, default 0
+        Soothing parameter for unigram sampling, and merge probability for BPE-dropout.
 
     Examples
     --------
@@ -538,7 +538,7 @@ class SentencepieceTokenizer(_SentencepieceProcessor):
 
     """
 
-    def __init__(self, path, num_best=0, alpha=1.0, **kwargs):
+    def __init__(self, path, num_best=0, alpha=0, **kwargs):
         super(SentencepieceTokenizer, self).__init__(path)
         self._path = path
         self._nbest = num_best
